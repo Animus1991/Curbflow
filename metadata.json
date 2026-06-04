@@ -1,0 +1,6 @@
+{
+  "name": "CurbFlow AI",
+  "description": "Real-time parking probability and urban map freshness intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
