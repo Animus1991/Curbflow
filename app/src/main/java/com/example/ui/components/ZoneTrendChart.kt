@@ -44,7 +44,7 @@ fun ZoneTrendChart(zone: ParkingZone) {
             .fillMaxWidth()
             .padding(vertical = 16.dp)
     ) {
-        Text("24h Availability Trends (Occupancy %)", style = MaterialTheme.typography.titleMedium, color = BrandCyan, modifier = Modifier.padding(bottom = 8.dp))
+        Text("LAST 24 HOURS — SPOT AVAILABILITY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = androidx.compose.ui.text.font.FontWeight.Black, modifier = Modifier.padding(bottom = 8.dp))
         
         ProvideChartStyle {
             val backgroundBrush = Brush.verticalGradient(

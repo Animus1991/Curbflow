@@ -1,72 +1,102 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.Brightness7
+import com.example.data.FleetContributor
+import com.example.data.ParkingZone
+import com.example.data.PrivateParking
 import com.example.ui.theme.*
-import com.example.ui.theme.LocalThemeManager
+import androidx.compose.foundation.BorderStroke
 
-// --- Map Containers --- //
+// --- Curbflow Design Language (CDL) Architectural Foundation ---
+
+@Composable
+fun GlassSurface(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(24.dp),
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .shadow(12.dp, shape)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)) // Glass-morphic baseline
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+    ) {
+        content()
+    }
+}
 
 @Composable
 fun ContextualMapContainer(
     modifier: Modifier = Modifier,
-    zones: List<com.example.data.ParkingZone> = emptyList(),
-    privateParkings: List<com.example.data.PrivateParking> = emptyList(),
+    zones: List<ParkingZone> = emptyList(),
+    privateParkings: List<PrivateParking> = emptyList(),
     isDriving: Boolean = false,
-    showHeatmap: Boolean = false,
-    trafficVisible: Boolean = false,
-    restrictedZonesVisible: Boolean = false,
-    mapCenter: Pair<Double, Double> = Pair(37.9715, 23.7267),
+    showHeatmap: Boolean = true,
+    trafficVisible: Boolean = true,
+    restrictedZonesVisible: Boolean = true,
+    userLocation: Pair<Double, Double> = 37.9715 to 23.7267,
     isFullScreen: Boolean = false,
     onFullScreenToggle: (() -> Unit)? = null
 ) {
-    Box(modifier = modifier) {
-        com.example.ui.components.OsmdroidMapView.RenderMap(
+    Box(modifier = modifier
+        .clip(RoundedCornerShape(if (isFullScreen) 0.dp else 32.dp))
+        .border(if (isFullScreen) 0.dp else 1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(32.dp))
+    ) {
+        OsmdroidMapView.RenderMap(
             zones = zones,
             privateParkings = privateParkings,
             isDriving = isDriving,
             showHeatmap = showHeatmap,
-            heatmapType = com.example.ui.components.HeatmapType.PROBABILITY,
+            heatmapType = HeatmapType.PROBABILITY,
             trafficVisible = trafficVisible,
             dynamicSpots = emptyList(),
             spotMarkersVisible = true,
             restrictedZonesVisible = restrictedZonesVisible,
             forecastVisible = false,
             weatherVisible = false,
-            userLocation = mapCenter,
-            mapCenter = mapCenter,
+            userLocation = userLocation,
+            mapCenter = userLocation,
             onZoneSelected = {}
         )
 
-        // Overlay full-screen toggle
         if (onFullScreenToggle != null) {
-            IconButton(
+            Surface(
                 onClick = onFullScreenToggle,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp))
+                    .padding(20.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.4f))
             ) {
                 Icon(
-                    imageVector = if (isFullScreen) Icons.Default.Close else Icons.Default.Fullscreen,
-                    contentDescription = "Toggle Full Screen Map",
-                    tint = Color.White
+                    if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                    contentDescription = "Toggle Full Screen",
+                    modifier = Modifier.padding(14.dp),
+                    tint = NeonCyan
                 )
             }
         }
@@ -74,63 +104,13 @@ fun ContextualMapContainer(
 }
 
 @Composable
-fun MiniMapToggleFab(
-    isMapVisible: Boolean,
-    onToggle: () -> Unit
-) {
-    FloatingActionButton(
-        onClick = onToggle,
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary
-    ) {
-        Icon(
-            if (isMapVisible) Icons.Default.Close else Icons.Default.Map,
-            contentDescription = "Toggle Mini-Map"
-        )
-    }
-}
-
-// --- App Shell --- //
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun CurbFlowAppShell(
     currentRoute: String?,
     onNavigate: (String) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
-    val showBottomNav = currentRoute in listOf("map", "route", "private", "fleet", "city", "privacy")
-    
     Scaffold(
-        topBar = {
-            if (showBottomNav) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text("CurbFlow AI", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                            Text("Parking probability & urban freshness", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    actions = {
-                        val themeManager = LocalThemeManager.current
-                        IconButton(onClick = { themeManager.toggleTheme() }) {
-                            Icon(
-                                imageVector = if (themeManager.isDarkTheme) Icons.Default.Brightness7 else Icons.Default.Brightness4,
-                                contentDescription = "Toggle Theme",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                )
-            }
-        },
-        bottomBar = {
-            if (showBottomNav) {
-                CurbFlowBottomNavigation(currentRoute, onNavigate)
-            }
-        },
+        bottomBar = { CurbFlowBottomNavigation(currentRoute, onNavigate) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         content(innerPadding)
@@ -139,371 +119,271 @@ fun CurbFlowAppShell(
 
 @Composable
 fun CurbFlowBottomNavigation(currentRoute: String?, onNavigate: (String) -> Unit) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceVariant
+    // Floating Glass Navigation Island
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 20.dp)
+            .height(84.dp)
     ) {
-        val items = listOf(
-            Triple("map", "Map", Icons.Default.Map),
-            Triple("route", "Route", Icons.Default.Directions),
-            Triple("private", "Private", Icons.Default.LocalParking),
-            Triple("fleet", "Fleet", Icons.Default.DirectionsCar),
-            Triple("city", "City", Icons.Default.Assessment),
-            Triple("privacy", "Privacy", Icons.Default.Security)
-        )
-        items.forEach { (route, label, icon) ->
-            NavigationBarItem(
-                icon = { Icon(icon, contentDescription = label) },
-                label = { Text(label, fontSize = 10.sp, maxLines = 1) },
-                selected = currentRoute?.startsWith(route) == true, // Handle "route/{zoneId}"
-                onClick = { onNavigate(route) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+        GlassSurface(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val items = listOf(
+                    Triple("map", "Map", Icons.Default.Explore),
+                    Triple("fleet", "Fleet", Icons.Default.Hub),
+                    Triple("city", "City", Icons.Default.StackedLineChart),
+                    Triple("private", "Garages", Icons.Default.LocalParking),
+                    Triple("profile", "Profile", Icons.Default.Person)
                 )
-            )
+                items.forEach { (route, label, icon) ->
+                    val isSelected = currentRoute?.startsWith(route) == true
+                    
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onNavigate(route) }
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (isSelected) {
+                                // Glow Affordance behind active icon
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(NeonCyan.copy(alpha = 0.15f), CircleShape)
+                                        .blur(10.dp)
+                                )
+                            }
+                            Icon(
+                                icon,
+                                contentDescription = label,
+                                tint = if (isSelected) NeonCyan else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .size(if (isSelected) 30.dp else 24.dp)
+                                    .graphicsLayer {
+                                        scaleX = if (isSelected) 1.1f else 1f
+                                        scaleY = if (isSelected) 1.1f else 1f
+                                    }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) NeonCyan else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
-// --- Cards & Components --- //
+@Composable
+fun ProbabilityPulseIndicator(probability: Double, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 2.2f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Restart),
+        label = "pulse"
+    )
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.7f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Restart),
+        label = "alpha"
+    )
+    
+    val color = when {
+        probability > 0.7 -> EmeraldLive
+        probability > 0.4 -> AmberWarning
+        else -> CrimsonDanger
+    }
+
+    Box(contentAlignment = Alignment.Center, modifier = modifier.size(72.dp)) {
+        // High-Fidelity Glow
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .graphicsLayer { 
+                    scaleX = pulseScale
+                    scaleY = pulseScale
+                    alpha = pulseAlpha
+                }
+                .background(color, CircleShape)
+        )
+        // Solid Core with Affinity border
+        Surface(
+            modifier = Modifier.size(20.dp),
+            shape = CircleShape,
+            color = color,
+            shadowElevation = 10.dp,
+            border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+        ) {}
+    }
+}
 
 @Composable
-fun MetricCard(title: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
+fun CDLCard(
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
         modifier = modifier
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 6.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
+        Column(modifier = Modifier.padding(24.dp)) {
+            content()
         }
     }
 }
 
 @Composable
 fun ProbabilityBadge(probability: Double) {
-    val probPercent = (probability * 100).toInt()
-    val (color, text) = when {
-        probability > 0.6 -> ProbabilityHigh to "High probability"
-        probability > 0.3 -> ProbabilityMedium to "Medium probability"
-        probability >= 0.0 -> ProbabilityLow to "Low probability"
-        else -> ProbabilityUnknown to "Insufficient data"
+    val (label, color) = when {
+        probability > 0.7 -> "LIKELY OPEN" to EmeraldLive
+        probability > 0.4 -> "LIMITED" to AmberWarning
+        else -> "UNLIKELY" to CrimsonDanger
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .background(color = color.copy(alpha = 0.2f), shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+    Surface(
+        color = color.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.5.dp, color.copy(alpha = 0.4f))
     ) {
-        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(text, color = color, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Live Status Indicator in badge
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .background(color, CircleShape)
+                    .shadow(4.dp, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = color,
+                fontWeight = FontWeight.Black
+            )
+        }
     }
 }
 
 @Composable
-fun FreshnessBadge(freshnessMinutes: Int) {
-    val text = when {
-        freshnessMinutes <= 1 -> "Fresh signal: 1 min ago"
-        freshnessMinutes <= 10 -> "Updated $freshnessMinutes min ago"
-        else -> "Stale signal"
-    }
-    val color = if (freshnessMinutes <= 5) MaterialTheme.colorScheme.secondary else WarningOrange
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .background(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+fun ActionButton(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    color: Color = NeonCyan
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(68.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp)
     ) {
-        Icon(Icons.Default.AccessTime, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(text, color = color, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@Composable
-fun LegalRiskBadge(riskLevel: String) {
-    val (color, icon) = when (riskLevel.lowercase()) {
-        "low" -> MaterialTheme.colorScheme.secondary to Icons.Default.CheckCircle
-        "medium" -> WarningOrange to Icons.Default.Warning
-        "high", "restricted" -> MaterialTheme.colorScheme.error to Icons.Default.Error
-        else -> MaterialTheme.colorScheme.onSurfaceVariant to Icons.Default.Help
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .background(color = color.copy(alpha = 0.1f), shape = RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
-        Spacer(modifier = Modifier.width(4.dp))
-        Text("Legal risk: $riskLevel", color = color, style = MaterialTheme.typography.labelSmall)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(26.dp))
+        Spacer(modifier = Modifier.width(14.dp))
+        Text(
+            text = text.uppercase(), 
+            style = MaterialTheme.typography.titleMedium, 
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.2.sp
+        )
     }
 }
 
 @Composable
 fun ConfidenceMeter(confidence: Double) {
     Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Confidence", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${(confidence * 100).toInt()}%", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = NeonCyan, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("PREDICTION ACCURACY", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         LinearProgressIndicator(
             progress = { confidence.toFloat() },
-            modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-            color = AccentCyan,
-            trackColor = SurfaceElevated
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp)),
+            color = NeonCyan,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
 
 @Composable
 fun ZoneCard(
-    zoneName: String,
+    name: String,
     area: String,
     probability: Double,
-    confidence: Double,
-    freshnessMinutes: Int,
-    expectedTimeToPark: String,
-    walkingTime: String,
-    legalRisk: String,
-    recommendationScore: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text(zoneName, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                    Text(area, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(recommendationScore, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProbabilityBadge(probability)
-                LegalRiskBadge(legalRisk)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            FreshnessBadge(freshnessMinutes)
-            Spacer(modifier = Modifier.height(16.dp))
-            ConfidenceMeter(confidence)
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("ETA to Park", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(expectedTimeToPark, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Walking", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(walkingTime, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PrivateParkingCard(
-    name: String,
-    price: String,
-    slots: Int,
-    distance: String,
-    walkingTime: String,
-    rating: Double,
-    onReserve: () -> Unit
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(name, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                Text(price, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocalParking, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("$slots slots left", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Star, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(rating.toString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("$distance away", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Text("~$walkingTime walk", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Button(
-                    onClick = onReserve,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Reserve", color = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FleetDeviceCard(
-    vehicleType: String,
-    status: String,
-    coverageScore: Double,
-    dataQuality: String,
-    reward: String,
-    privacyMode: String
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text(vehicleType, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-                    Text(status, style = MaterialTheme.typography.bodyMedium, color = if (status.equals("Online", ignoreCase=true)) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(reward, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.secondary)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Column {
-                Text("Coverage Score: ${(coverageScore * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                LinearProgressIndicator(
-                    progress = { coverageScore.toFloat() },
-                    modifier = Modifier.fillMaxWidth().height(4.dp).padding(vertical = 4.dp).clip(RoundedCornerShape(2.dp)),
-                    color = AccentCyan,
-                    trackColor = SurfaceElevated
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("Quality: $dataQuality", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Privacy: $privacyMode", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-@Composable
-fun MunicipalKpiCard(
-    title: String,
-    value: String,
-    trendInfo: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated),
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(value, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(trendInfo, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
-fun SafetyBanner() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = WarningOrange.copy(alpha = 0.15f)),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Warning, contentDescription = "Safety Warning", tint = WarningOrange)
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                "Drive safely. CurbFlow does not require interaction while the vehicle is moving. Use voice guidance and follow local traffic laws.",
-                style = MaterialTheme.typography.bodySmall,
-                color = WarningOrange
-            )
-        }
-    }
-}
-
-@Composable
-fun LegalDisclaimerCard() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-            Icon(Icons.Default.Info, contentDescription = "Legal Info", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                "CurbFlow AI provides probability-based parking guidance. It does not guarantee, reserve, sell, auction, or privatize public street parking.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun PrivacyByDesignCard() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Security, contentDescription = "Privacy", tint = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Privacy By Design", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            PrivacyRow(Icons.Default.VisibilityOff, "Raw video upload", "OFF", MaterialTheme.colorScheme.error)
-            PrivacyRow(Icons.Default.Memory, "Edge detection", "ON", MaterialTheme.colorScheme.secondary)
-            PrivacyRow(Icons.Default.CloudUpload, "Metadata-only transmission", "Always", MaterialTheme.colorScheme.primary)
-            PrivacyRow(Icons.Default.PublicOff, "Public spot ownership", "None", MaterialTheme.colorScheme.onSurfaceVariant)
-            PrivacyRow(Icons.Default.NoPhotography, "Face/License plate storage", "Zero (Prototype)", MaterialTheme.colorScheme.secondary)
-        }
-    }
-}
-
-@Composable
-private fun PrivacyRow(icon: ImageVector, label: String, value: String, valueColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    CDLCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                Text(area.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            ProbabilityBadge(probability)
         }
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = valueColor, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun MunicipalKpiCard(title: String, value: String, narrative: String, modifier: Modifier = Modifier) {
+    CDLCard(modifier = modifier) {
+        Text(title.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Black)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(value, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Black, color = NeonCyan)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(narrative, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+fun PrivacyRow(icon: ImageVector, title: String, description: String, color: Color) {
+    Row(modifier = Modifier.padding(vertical = 12.dp), verticalAlignment = Alignment.Top) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(color.copy(alpha = 0.1f), CircleShape)
+                .border(1.dp, color.copy(alpha = 0.3f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        }
+        Spacer(modifier = Modifier.width(20.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

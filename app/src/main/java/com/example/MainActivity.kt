@@ -14,6 +14,13 @@ import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.LocalThemeManager
 import com.example.ui.theme.ThemeManager
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.data.local.ParkingDatabase
+import com.example.util.ViewModelFactory
+
+import com.example.ui.util.LocalViewModelFactory
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -21,6 +28,10 @@ class MainActivity : ComponentActivity() {
     setContent { 
       val systemDarkTheme = isSystemInDarkTheme()
       var isDark by remember { mutableStateOf(systemDarkTheme) }
+
+      val context = LocalContext.current
+      val database = remember { ParkingDatabase.getDatabase(context) }
+      val viewModelFactory = remember { ViewModelFactory(database) }
 
       val themeManager = remember {
           object : ThemeManager {
@@ -32,7 +43,10 @@ class MainActivity : ComponentActivity() {
           }
       }
 
-      CompositionLocalProvider(LocalThemeManager provides themeManager) {
+      CompositionLocalProvider(
+          LocalThemeManager provides themeManager,
+          LocalViewModelFactory provides viewModelFactory
+      ) {
           MyApplicationTheme(darkTheme = isDark) { MainApp() } 
       }
     }

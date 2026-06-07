@@ -2,36 +2,46 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BackgroundDark = Color(0xFF050505)
-val SurfaceDark = Color(0xFF18181B)
-val SurfaceElevated = Color(0xFF27272A)
+// --- Curbflow Design Language (CDL) v2.0 - High Contrast Palette ---
 
-val AccentCyan = Color(0xFF06B6D4)
-val AccentGreen = Color(0xFF10B981)
-val WarningOrange = Color(0xFFF59E0B)
-val DangerRed = Color(0xFFF43F5E)
+// 1. Primary Tones (Deep Navigation Aesthetic)
+val NavyDeep = Color(0xFF0A0E14)      // Primary Background (Absorbs glare)
+val NavySurface = Color(0xFF141A23)   // Surface for cards and layers
+val NavyElevated = Color(0xFF1E2631)  // Hover/Active states
 
-val MutedText = Color(0xFFA1A1AA)
-val StrongText = Color(0xFFF4F4F5)
-val BorderSubtle = Color(0xFF27272A)
+// 2. High-Affordance Accents (Neon/Vivid for outdoor visibility)
+val NeonCyan = Color(0xFF00E5FF)      // Primary Action (Command Color)
+val NeonBlue = Color(0xFF2979FF)      // Secondary/Navigation Info
+val EmeraldLive = Color(0xFF00E676)   // Success/Availability
+val AmberWarning = Color(0xFFFFC400)  // Caution/Moderate Demand
+val CrimsonDanger = Color(0xFFFF1744) // Full/Restricted
 
-val ProbabilityHigh = Color(0xFF10B981)
-val ProbabilityMedium = Color(0xFFF59E0B)
-val ProbabilityLow = Color(0xFFF43F5E)
-val ProbabilityUnknown = Color(0xFF52525B)
+// 3. Typographic Hierarchy
+val ChalkWhite = Color(0xFFF5F7FA)    // Primary Text (Ultra high contrast)
+val SmokeGrey = Color(0xFF94A3B8)     // Secondary Text
+val SlateGrey = Color(0xFF475569)     // Muted/Decorative
 
-// Preserving existing aliases where possible
-val BrandCyan = AccentCyan
-val BrandGreen = AccentGreen
-val SurfaceVariantDark = Color(0xFF09090B)
-val TextPrimaryDark = StrongText
-val TextSecondaryDark = MutedText
-val BorderDark = BorderSubtle
+// 4. Border & Divider (Structural Affinity)
+val GlassBorder = Color(0xFF334155).copy(alpha = 0.5f)
+val CyberLine = Color(0xFF00E5FF).copy(alpha = 0.2f)
 
-val BackgroundLight = Color(0xFFF9FAFB)
+// Mapping Legacy Aliases for backward compatibility during refactor
+val BrandCyan = NeonCyan
+val BrandGreen = EmeraldLive
+val BackgroundDark = NavyDeep
+val SurfaceDark = NavySurface
+val StrongText = ChalkWhite
+val MutedText = SmokeGrey
+val BorderSubtle = GlassBorder
+
+val ProbabilityHigh = EmeraldLive
+val ProbabilityMedium = AmberWarning
+val ProbabilityLow = CrimsonDanger
+val ProbabilityUnknown = SlateGrey
+
+// Light Mode (Optimized for readability if switched)
+val BackgroundLight = Color(0xFFF8FAFC)
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceVariantLight = Color(0xFFF3F4F6)
-
-val TextPrimaryLight = Color(0xFF111827)
-val TextSecondaryLight = Color(0xFF4B5563)
-val BorderLight = Color(0xFFE5E7EB)
+val TextPrimaryLight = Color(0xFF0F172A)
+val TextSecondaryLight = Color(0xFF64748B)
+val BorderLight = Color(0xFFE2E8F0)

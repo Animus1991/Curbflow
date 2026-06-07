@@ -14,35 +14,37 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = BrandCyan,
-    secondary = BrandGreen,
-    tertiary = BrandCyan,
-    background = BackgroundDark,
-    surface = SurfaceDark,
-    surfaceVariant = SurfaceVariantDark,
-    onPrimary = Color.Black,
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
-    onBackground = TextPrimaryDark,
-    onSurface = TextPrimaryDark,
-    onSurfaceVariant = TextSecondaryDark,
-    error = ProbabilityLow
+    primary = NeonCyan,
+    secondary = EmeraldLive,
+    tertiary = NeonBlue,
+    background = NavyDeep,
+    surface = NavySurface,
+    surfaceVariant = NavyElevated,
+    onPrimary = NavyDeep,
+    onSecondary = NavyDeep,
+    onTertiary = ChalkWhite,
+    onBackground = ChalkWhite,
+    onSurface = ChalkWhite,
+    onSurfaceVariant = SmokeGrey,
+    outline = GlassBorder,
+    error = CrimsonDanger
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = BrandCyan,
-    secondary = BrandGreen,
-    tertiary = BrandCyan,
+    primary = NeonBlue,
+    secondary = EmeraldLive,
+    tertiary = NeonCyan,
     background = BackgroundLight,
     surface = SurfaceLight,
-    surfaceVariant = SurfaceVariantLight,
+    surfaceVariant = Color(0xFFF1F5F9),
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = TextPrimaryLight,
     onSurface = TextPrimaryLight,
     onSurfaceVariant = TextSecondaryLight,
-    error = ProbabilityLow
+    outline = BorderLight,
+    error = CrimsonDanger
 )
 
 interface ThemeManager {
@@ -59,13 +61,16 @@ fun MyApplicationTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
+    // We enforce CDL Dark Mode for professional driving focus, 
+    // but allow light mode if explicitly set.
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

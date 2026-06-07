@@ -18,6 +18,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polygon
+import com.example.ui.theme.LocalThemeManager
 
 object OsmdroidMapView : MapProvider {
     @Composable
@@ -48,7 +49,7 @@ object OsmdroidMapView : MapProvider {
             true // Dummy value just to run once
         }
 
-        val isDarkTheme = androidx.compose.foundation.isSystemInDarkTheme()
+        val isDarkTheme = LocalThemeManager.current.isDarkTheme
 
         val mapView = remember {
             MapView(context).apply {
@@ -171,7 +172,7 @@ object OsmdroidMapView : MapProvider {
                     val marker = Marker(view).apply {
                         position = GeoPoint(lat.toDouble(), lon.toDouble())
                         title = p.name
-                        snippet = "Private Fallback • Available"
+                        snippet = "Private Garage • Available"
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         // Use a distinct icon for private parking if available, utilizing default for now
                     }

@@ -65,7 +65,7 @@ object UrbanMapView : MapProvider {
                 Marker(
                     state = markerState,
                     title = p.name,
-                    snippet = "Private Fallback"
+                    snippet = "Private Garage"
                 )
             }
         }

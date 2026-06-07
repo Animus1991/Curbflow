@@ -170,7 +170,7 @@ fun MapControlsOverlay(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-            Divider(color = BrandCyan.copy(alpha = 0.3f))
+            HorizontalDivider(color = BrandCyan.copy(alpha = 0.3f))
             Spacer(modifier = Modifier.height(8.dp))
 
             // Data Freshness Panel
