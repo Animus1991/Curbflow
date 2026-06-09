@@ -12,6 +12,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
+import com.example.ui.theme.AccessibilityPrefs
+import com.example.ui.theme.LocalAccessibilityPrefs
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.theme.LocalThemeManager
 import com.example.ui.theme.ThemeManager
@@ -46,6 +48,32 @@ class MainActivity : ComponentActivity() {
       val database = remember { ParkingDatabase.getDatabase(context) }
       val viewModelFactory = remember { ViewModelFactory(context, database) }
 
+      // Read accessibility preferences from SharedPreferences (live-reactive)
+      val prefs = remember { context.getSharedPreferences("curbflow_prefs", android.content.Context.MODE_PRIVATE) }
+      var accessibilityPrefs by remember {
+          mutableStateOf(
+              AccessibilityPrefs(
+                  colorblindMode = prefs.getBoolean("colorblind_mode", false),
+                  highContrast = prefs.getBoolean("high_contrast", false),
+                  largeText = prefs.getBoolean("large_text", false)
+              )
+          )
+      }
+      // Re-read on every recomposition triggered by SettingsScreen toggling
+      val listener = remember {
+          android.content.SharedPreferences.OnSharedPreferenceChangeListener { sp, _ ->
+              accessibilityPrefs = AccessibilityPrefs(
+                  colorblindMode = sp.getBoolean("colorblind_mode", false),
+                  highContrast = sp.getBoolean("high_contrast", false),
+                  largeText = sp.getBoolean("large_text", false)
+              )
+          }
+      }
+      androidx.compose.runtime.DisposableEffect(prefs) {
+          prefs.registerOnSharedPreferenceChangeListener(listener)
+          onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+      }
+
       val themeManager = remember {
           object : ThemeManager {
               override fun toggleTheme() {
@@ -58,9 +86,10 @@ class MainActivity : ComponentActivity() {
 
       CompositionLocalProvider(
           LocalThemeManager provides themeManager,
-          LocalViewModelFactory provides viewModelFactory
+          LocalViewModelFactory provides viewModelFactory,
+          LocalAccessibilityPrefs provides accessibilityPrefs
       ) {
-          MyApplicationTheme(darkTheme = isDark) { MainApp() } 
+          MyApplicationTheme(darkTheme = isDark, accessibilityPrefs = accessibilityPrefs) { MainApp() } 
       }
     }
   }

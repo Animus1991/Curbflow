@@ -19,11 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.data.MockData
 import com.example.ui.theme.*
 import com.example.ui.util.LocalViewModelFactory
+import com.example.util.VoiceGuidanceEngine
 import kotlinx.coroutines.delay
 
 /**
@@ -53,6 +55,16 @@ fun DrivingModeScreen(
     var etaSeconds by remember { mutableIntStateOf(zone.expectedTimeToParkMinutes * 60) }
     var voiceMessage by remember { mutableStateOf("Navigating to ${zone.name}") }
     var showVoiceOverlay by remember { mutableStateOf(true) }
+
+    // Real Text-to-Speech engine — speaks every guidance message aloud
+    val context = LocalContext.current
+    val voiceEngine = remember { VoiceGuidanceEngine(context) }
+    DisposableEffect(Unit) {
+        onDispose { voiceEngine.shutdown() }
+    }
+    LaunchedEffect(voiceMessage) {
+        voiceEngine.speak(voiceMessage)
+    }
 
     // Countdown ETA
     LaunchedEffect(Unit) {

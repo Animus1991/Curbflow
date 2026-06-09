@@ -109,7 +109,42 @@ fun CurbFlowAppShell(
     onNavigate: (String) -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    // Global network connectivity monitoring — production offline UX
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val networkMonitor = remember { com.example.util.NetworkMonitor(context) }
+    val isOnline by networkMonitor.isOnline.collectAsState(initial = true)
+
     Scaffold(
+        topBar = {
+            androidx.compose.animation.AnimatedVisibility(visible = !isOnline) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Offline — showing cached data",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+        },
         bottomBar = { CurbFlowBottomNavigation(currentRoute, onNavigate) },
         containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->

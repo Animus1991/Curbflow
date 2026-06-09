@@ -19,3 +19,45 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# ============================================================
+# CurbFlow AI — Production R8 rules
+# ============================================================
+
+# Keep line numbers for readable crash stack traces (Crashlytics-ready)
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# --- Room ---
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.paging.**
+
+# --- Moshi (reflection-based serialization) ---
+-keepclassmembers class com.example.data.** { *; }
+-keep @com.squareup.moshi.JsonQualifier @interface *
+-dontwarn org.jetbrains.annotations.**
+
+# --- Retrofit / OkHttp ---
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn retrofit2.**
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# --- osmdroid ---
+-dontwarn org.osmdroid.**
+-keep class org.osmdroid.** { *; }
+
+# --- Kotlin Coroutines ---
+-keepclassmembers class kotlinx.coroutines.** { volatile <fields>; }
+-dontwarn kotlinx.coroutines.**
+
+# --- Strip android.util.Log calls in release ---
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}

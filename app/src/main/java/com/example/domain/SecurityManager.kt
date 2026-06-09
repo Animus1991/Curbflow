@@ -2,26 +2,28 @@ package com.example.domain
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Base64
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
+import java.security.KeyStore
 import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 /**
  * SecurityManager — Centralized security configuration for CurbFlow AI.
  * 
  * Responsibilities:
- * - Secure token/key storage (AES-256-GCM encrypted SharedPreferences)
+ * - Secure token/key storage encrypted with an **Android Keystore-backed** AES-256 key
+ *   (hardware-backed where available; key material never leaves the secure element)
  * - Certificate pinning configuration for OkHttp
  * - Secure random key generation
  * - Anonymous device ID (no hardware fingerprinting)
- * 
- * Note: In production, replace with AndroidX Security Crypto library
- * (EncryptedSharedPreferences + MasterKey) for Keystore-backed encryption.
  */
 object SecurityManager {
 
@@ -31,11 +33,31 @@ object SecurityManager {
     private const val KEY_DEVICE_ID = "device_anonymous_id"
     private const val GCM_TAG_LENGTH = 128
     private const val GCM_IV_LENGTH = 12
+    private const val KEYSTORE_ALIAS = "curbflow_master_key"
+    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
-    // In production, derive from Android Keystore. For demo, static seed.
-    private val internalKey: ByteArray by lazy {
-        val seed = "CurbFlowAI2026SecureKey!".toByteArray()
-        seed.copyOf(32) // 256-bit
+    /**
+     * Get or create the AES-256 master key in the Android Keystore.
+     * Key material is generated and stored inside the secure hardware/TEE —
+     * it is never exposed to the app process.
+     */
+    private fun getOrCreateMasterKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        (keyStore.getEntry(KEYSTORE_ALIAS, null) as? KeyStore.SecretKeyEntry)?.let {
+            return it.secretKey
+        }
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE)
+        keyGenerator.init(
+            KeyGenParameterSpec.Builder(
+                KEYSTORE_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setKeySize(256)
+                .build()
+        )
+        return keyGenerator.generateKey()
     }
 
     private fun getSecurePrefs(context: Context): SharedPreferences {
@@ -43,9 +65,9 @@ object SecurityManager {
     }
 
     private fun encrypt(plaintext: String): String {
-        val iv = ByteArray(GCM_IV_LENGTH).also { SecureRandom().nextBytes(it) }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(internalKey, "AES"), GCMParameterSpec(GCM_TAG_LENGTH, iv))
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateMasterKey())
+        val iv = cipher.iv // Keystore generates the IV
         val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
         return Base64.encodeToString(iv + ciphertext, Base64.NO_WRAP)
     }
@@ -55,7 +77,7 @@ object SecurityManager {
         val iv = combined.sliceArray(0 until GCM_IV_LENGTH)
         val ciphertext = combined.sliceArray(GCM_IV_LENGTH until combined.size)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(internalKey, "AES"), GCMParameterSpec(GCM_TAG_LENGTH, iv))
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateMasterKey(), GCMParameterSpec(GCM_TAG_LENGTH, iv))
         return String(cipher.doFinal(ciphertext), Charsets.UTF_8)
     }
 
