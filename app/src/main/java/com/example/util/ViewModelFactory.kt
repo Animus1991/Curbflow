@@ -13,7 +13,10 @@ import com.example.ui.screens.FleetViewModel
 import com.example.ui.screens.MapViewModel
 import com.example.ui.screens.UserViewModel
 
+import com.example.util.LocationManager
+
 class ViewModelFactory(
+    private val context: android.content.Context,
     private val database: com.example.data.local.ParkingDatabase
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -21,7 +24,8 @@ class ViewModelFactory(
             modelClass.isAssignableFrom(MapViewModel::class.java) -> {
                 val repository = ParkingRepository(database.zoneDao())
                 val simulationService = RealTimeSimulationService(database.zoneDao())
-                MapViewModel(repository, simulationService) as T
+                val locationManager = LocationManager(context)
+                MapViewModel(repository, simulationService, locationManager) as T
             }
             modelClass.isAssignableFrom(FleetViewModel::class.java) -> {
                 val repository = FleetRepository(database.fleetDao())
@@ -32,7 +36,12 @@ class ViewModelFactory(
                 UserViewModel(repository) as T
             }
             modelClass.isAssignableFrom(BookingViewModel::class.java) -> {
-                val repository = BookingRepository(database.bookingDao())
+                val repository = BookingRepository(database.bookingDao(), secretKeyProvider = {
+                    com.example.domain.SecurityManager.getUserSecretKey(context)
+                        ?: com.example.domain.SecurityManager.generateSecretKey().also {
+                            com.example.domain.SecurityManager.storeUserSecretKey(context, it)
+                        }
+                })
                 BookingViewModel(repository) as T
             }
             else -> throw IllegalArgumentException("Unknown ViewModel class")

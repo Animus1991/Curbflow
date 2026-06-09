@@ -123,6 +123,11 @@ fun MapScreen(
             }
 
             // 2c. Live Data Connection Status
+            val wsScope = rememberCoroutineScope()
+            DisposableEffect(Unit) {
+                com.example.domain.HeatmapWebSocketService.connect(wsScope)
+                onDispose { com.example.domain.HeatmapWebSocketService.disconnect() }
+            }
             val wsState by com.example.domain.HeatmapWebSocketService.connectionState.collectAsState()
             val (wsLabel, wsColor) = when (wsState) {
                 com.example.domain.HeatmapWebSocketService.ConnectionState.CONNECTED -> "LIVE" to EmeraldLive

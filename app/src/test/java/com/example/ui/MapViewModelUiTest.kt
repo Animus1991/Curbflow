@@ -1,11 +1,14 @@
 package com.example.ui
 
 import com.example.domain.ParkingRepository
+import com.example.domain.RealTimeSimulationService
 import com.example.ui.screens.MapViewModel
+import com.example.util.LocationManager
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -16,13 +19,16 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModelUiTest {
     private val repository: ParkingRepository = mockk(relaxed = true)
+    private val simulationService: RealTimeSimulationService = mockk(relaxed = true)
+    private val locationManager: LocationManager = mockk(relaxed = true)
     private lateinit var viewModel: MapViewModel
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        viewModel = MapViewModel(repository)
+        every { locationManager.getLocationUpdates(any()) } returns emptyFlow()
+        viewModel = MapViewModel(repository, simulationService, locationManager)
     }
 
     @After

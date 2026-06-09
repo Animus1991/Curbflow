@@ -21,7 +21,8 @@ import kotlinx.coroutines.delay
 
 class MapViewModel(
     private val repository: ParkingRepository,
-    private val simulationService: RealTimeSimulationService
+    private val simulationService: RealTimeSimulationService,
+    private val locationManager: com.example.util.LocationManager
 ) : ViewModel() {
     private val _zones = MutableStateFlow<List<ParkingZone>>(emptyList())
     val zones: StateFlow<List<ParkingZone>> = _zones.asStateFlow()
@@ -80,6 +81,13 @@ class MapViewModel(
 
         // Start real-time simulation
         simulationService.startSimulation(viewModelScope)
+
+        // Subscribe to real GPS location and speed updates
+        viewModelScope.launch {
+            locationManager.getLocationUpdates().collect { location ->
+                _speed.value = locationManager.getSpeedKmh(location)
+            }
+        }
 
         // Apply hysteresis: Enter driving mode immediately, but leave it with a delay
         viewModelScope.launch {

@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.data.FeedbackType
 import com.example.data.MockData
+import com.example.ui.components.ParkingConfirmationDialog
 import com.example.ui.util.LocalViewModelFactory
 import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.BrandCyan
@@ -48,10 +49,15 @@ fun TurnByTurnScreen(navController: NavController, zoneId: String, viewModel: Ma
 
     // Arrival countdown timer
     var countdownSeconds by remember { mutableIntStateOf(zone.expectedTimeToParkMinutes * 60) }
+    var showArrivalConfirmation by remember { mutableStateOf(false) }
+    var arrivalDialogDismissed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (countdownSeconds > 0) {
             delay(1000)
             countdownSeconds--
+        }
+        if (!arrivalDialogDismissed) {
+            showArrivalConfirmation = true
         }
     }
     val countdownMin = countdownSeconds / 60
@@ -184,6 +190,29 @@ fun TurnByTurnScreen(navController: NavController, zoneId: String, viewModel: Ma
             shape = CircleShape
         ) {
             Icon(Icons.Default.Mic, contentDescription = "Voice Assistant", modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onPrimary)
+        }
+
+        // Arrival Parking Confirmation Dialog
+        if (showArrivalConfirmation) {
+            ParkingConfirmationDialog(
+                zoneName = zone.name,
+                onConfirmParked = { _ ->
+                    viewModel.submitOutcome(zoneId, FeedbackType.FOUND_PARKING)
+                    showArrivalConfirmation = false
+                    arrivalDialogDismissed = true
+                    navController.popBackStack("map", inclusive = false)
+                },
+                onSpotTaken = { _ ->
+                    viewModel.submitOutcome(zoneId, FeedbackType.SPOT_TAKEN)
+                    showArrivalConfirmation = false
+                    arrivalDialogDismissed = true
+                    showRerouteSuggestion = true
+                },
+                onDismiss = {
+                    showArrivalConfirmation = false
+                    arrivalDialogDismissed = true
+                }
+            )
         }
 
         // Voice Overlay

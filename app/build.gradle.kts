@@ -100,7 +100,7 @@ dependencies {
   implementation(libs.osmdroid.android)
   implementation(libs.maps.compose)
   implementation(libs.play.services.maps)
-  // implementation(libs.play.services.location)
+  implementation(libs.play.services.location)
   implementation(libs.retrofit)
   implementation(libs.vico.compose)
   implementation(libs.vico.compose.m3)

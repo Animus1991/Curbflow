@@ -132,6 +132,14 @@ object SecurityManager {
     }
 
     /**
+     * Checks if the device environment is secure (basic integrity check placeholder).
+     * In production, integrate Google Play Integrity API.
+     */
+    fun isEnvironmentSecure(): Boolean {
+        return true
+    }
+
+    /**
      * Create a secure OkHttp client with certificate pinning and timeout configuration.
      */
     fun createSecureOkHttpClient(): OkHttpClient {

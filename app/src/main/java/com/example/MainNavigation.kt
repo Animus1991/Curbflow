@@ -66,6 +66,7 @@ fun MainApp() {
             composable("fleet") { FleetScreen(navController) }
             composable("city") { MunicipalScreen(navController) }
             composable("privacy") { PrivacyScreen(navController) }
+            composable("help") { HelpScreen(navController) }
             composable("settings") { SettingsScreen(navController) }
             composable("profile") { UserProfileScreen(navController) }
             composable("subscription") { SubscriptionScreen(navController) }
